@@ -24,7 +24,7 @@ function createMap(){
 function getData(map){
     
         //Example 2.3 line 22...load the data
-    $.ajax("data/MegaCities.geojson", {
+    $.ajax("data/City_temps.geojson", {
         dataType: "json",
         success: function(response){
             //create marker options
