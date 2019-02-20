@@ -1,7 +1,7 @@
 // Authored by Joe Marks, 2019
 /*eslint-env browser*/
 
-/* Map of GeoJSON data from MegaCities.geojson */
+/* Map of GeoJSON data from City_temps.geojson */
 
 //function to instantiate the Leaflet map
 function createMap(){
@@ -16,25 +16,26 @@ function createMap(){
         attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
     }).addTo(map);
 
-    //call getData function
+    //call getData function to add data to map
     getData(map);
 };
 
-//calculate the radius of each proportional symbol
+// Function to calculate the radius of each proportional symbol
 function calcPropRadius(attValue) {
-    //scale factor to adjust symbol size evenly
+    // Scale factor to adjust symbol size evenly
     var scaleFactor = 50;
-    //area based on attribute value and scale factor
+    // Area based on attribute value and scale factor
     var area = attValue * scaleFactor;
-    //radius calculated based on area
+    // Radius calculated based on area
     var radius = Math.sqrt(area/Math.PI);
-
+    // Return radius
     return radius;
 };
 
-//function to convert markers to circle markers
+// Function to convert markers to circle markers
 function pointToLayer(feature, latlng, attributes){
-    //Determine which attribute to visualize with proportional symbols
+    // Determine which attribute to visualize with proportional symbols
+    // By default, use first attribute
     var attribute = attributes[0];
     
     console.log(attribute);
