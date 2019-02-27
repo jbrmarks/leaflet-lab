@@ -18,6 +18,29 @@
     width: 50%;
 }
 
+#filterPanel {
+    width: 26%;
+    padding: 0px;
+    display: inline-block;
+    vertical-align: center;
+    text-align: right;
+    line-height: 42px;
+}
+
+#degrees {
+    width: 26%;
+    padding: 0px;
+    display: inline-block;
+    vertical-align: center;
+    text-align: left;
+    line-height: 42px;
+}
+
+
+.filter-slider {
+    width: 50%;
+}
+
 #forward {
     float: right;
 }

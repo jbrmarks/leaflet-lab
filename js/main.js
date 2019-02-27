@@ -1,7 +1,7 @@
 // Authored by Joe Marks, 2019
 /*eslint-env browser*/
 
-/* Map of GeoJSON data from MegaCities.geojson */
+/* Map of GeoJSON data from City_temps.geojson */
 
 // Function to instantiate the Leaflet map
 function createMap(){
@@ -98,7 +98,10 @@ function createPropSymbols(data, map, attributes){
     L.geoJson(data, {
         pointToLayer: function(feature, latlng){
             return pointToLayer(feature, latlng, attributes);
-        }
+        },
+        //filter: function(feature, layer){
+            //return updateFilteredCities(feature, );
+        //}
     }).addTo(map);
 };
 
@@ -128,7 +131,21 @@ function updatePropSymbols(map, attribute){
     });
 };
 
-function createSequenceControls(map, attributes){
+function updateFilteredCities(map, attribute, lowerLimit){
+    map.eachLayer(function(layer){
+        //console.log(layer.feature);
+        if (layer.feature && layer.feature.properties[attribute]){
+            if (layer.feature.properties[attribute] >= lowerLimit){
+                console.log(layer.feature.properties[attribute]);
+            }
+        }
+        //if(layer.feature.properties[attribute] >= lowerLimit){
+        //    console.log(layer);
+        //}
+    });
+}
+
+function createControls(map, attributes){
     //Create range input element (slider)
     $('#panel').append('<input class="range-slider" type="range">');
     
@@ -177,7 +194,31 @@ function createSequenceControls(map, attributes){
         updatePropSymbols(map, attributes[$('.range-slider').val()]);
     });
     
+    
+    //Create range input element (slider)
+    $('#filterPanel').append('<input class="filter-slider" type="range">');
+    
+    // Set slider attributes
+    $('.filter-slider').attr({
+        max: 80,
+        min: 50,
+        value: 50,
+        step: 1
+    });
+    
+    // Add text to display current value
+    $('#degrees').html($('.filter-slider').val() + " degrees");
+    
+    // Add an event listener for the slider
+    $('.filter-slider').on('input', function(){
+        // Update visible cities
+        updateFilteredCities(map, attributes[$('.range-slider').val()], $('.filter-slider').val());
+        $('#degrees').html($('.filter-slider').val() + " degrees");
+    });
+    
 };
+
+
 
 // Function to build an attributes array from the data
 function processData(data){
@@ -216,7 +257,9 @@ function getData(map){
             // Create proportional symbols and place on map
             createPropSymbols(response, map, attributes);
             // Create sequence controls
-            createSequenceControls(map, attributes);
+            createControls(map, attributes);
+            // Create filter controls
+            //createFilterControls(map, attributes);
         
         }
     });
