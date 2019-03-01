@@ -3,6 +3,12 @@
 
 /* Map of GeoJSON data from City_temps.geojson */
 
+// Array to store layers for each filter
+var mapLayerGroups = [];
+var prevLowerLimit = 50;
+var activeLayer;
+var inactiveLayer;
+
 // Function to instantiate the Leaflet map
 function createMap(){
     // Create the base map
@@ -84,7 +90,8 @@ function pointToLayer(feature, latlng, attributes){
         //    $("#panel").html(panelContent);
         //}
     });
-            
+    
+    mapLayerGroups[50] = layer;
     return layer;
         
 
@@ -98,10 +105,7 @@ function createPropSymbols(data, map, attributes){
     L.geoJson(data, {
         pointToLayer: function(feature, latlng){
             return pointToLayer(feature, latlng, attributes);
-        },
-        //filter: function(feature, layer){
-            //return updateFilteredCities(feature, );
-        //}
+        }
     }).addTo(map);
 };
 
@@ -131,18 +135,56 @@ function updatePropSymbols(map, attribute){
     });
 };
 
-function updateFilteredCities(map, attribute, lowerLimit){
+function updateFilterLayer(map, attribute, lowerLimit){
+
+    console.log("Called updateFilterLayer");
+    console.log(lowerLimit);
+    console.log(prevLowerLimit);
+    
     map.eachLayer(function(layer){
-        //console.log(layer.feature);
+
+        
+        // Get layer for this filter value from mapLayerGroups
+        var lg = mapLayerGroups[lowerLimit];
+                
+        // If the layer does not yet exist, create it
+        if (lg == undefined){
+            
+            console.log(lowerLimit + " is undefined");
+            
+            lg = new L.layerGroup();
+            //add the layer to the map
+            lg.addTo(map);
+            //store layer
+            mapLayerGroups[lowerLimit] = lg;
+        
+        
+        }
+        
+        // Add features above lower limit to layer
         if (layer.feature && layer.feature.properties[attribute]){
             if (layer.feature.properties[attribute] >= lowerLimit){
                 console.log(layer.feature.properties[attribute]);
+                lg.addLayer(layer);
+                //console.log(layer);
             }
         }
-        //if(layer.feature.properties[attribute] >= lowerLimit){
-        //    console.log(layer);
-        //}
+        
     });
+    
+    // Show newly selected filter layer
+    lg = mapLayerGroups[lowerLimit];
+    console.log("show: " + lg);
+    map.addLayer(lg);
+        
+    // Hide previous filter layer
+    lg = mapLayerGroups[prevLowerLimit];
+    console.log("remove: " + lg);
+    map.removeLayer(lg);
+        
+    prevLowerLimit = lowerLimit;
+    //console.log(lg);
+    
 }
 
 function createControls(map, attributes){
@@ -212,7 +254,7 @@ function createControls(map, attributes){
     // Add an event listener for the slider
     $('.filter-slider').on('input', function(){
         // Update visible cities
-        updateFilteredCities(map, attributes[$('.range-slider').val()], $('.filter-slider').val());
+        updateFilterLayer(map, attributes[$('.range-slider').val()], $('.filter-slider').val());
         $('#degrees').html($('.filter-slider').val() + " degrees");
     });
     
