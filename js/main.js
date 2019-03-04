@@ -9,6 +9,8 @@ var prevLowerLimit = 50;
 var activeLayer;
 var inactiveLayer;
 
+var pointLayers = [];
+
 // Function to instantiate the Leaflet map
 function createMap(){
     // Create the base map
@@ -91,7 +93,8 @@ function pointToLayer(feature, latlng, attributes){
         //}
     });
     
-    mapLayerGroups[50] = layer;
+    //console.log(feature.properties["City"]);
+    pointLayers[feature.properties["City"]] = layer
     return layer;
         
 
@@ -139,51 +142,66 @@ function updateFilterLayer(map, attribute, lowerLimit){
 
     console.log("Called updateFilterLayer");
     console.log(lowerLimit);
-    console.log(prevLowerLimit);
+    //console.log(prevLowerLimit);
     
-    map.eachLayer(function(layer){
-
-        
-        // Get layer for this filter value from mapLayerGroups
-        var lg = mapLayerGroups[lowerLimit];
-                
-        // If the layer does not yet exist, create it
-        if (lg == undefined){
-            
-            console.log(lowerLimit + " is undefined");
-            
-            lg = new L.layerGroup();
-            //add the layer to the map
-            lg.addTo(map);
-            //store layer
-            mapLayerGroups[lowerLimit] = lg;
-        
-        
-        }
-        
-        // Add features above lower limit to layer
-        if (layer.feature && layer.feature.properties[attribute]){
-            if (layer.feature.properties[attribute] >= lowerLimit){
-                console.log(layer.feature.properties[attribute]);
-                lg.addLayer(layer);
+    console.log(pointLayers["Brownsville"]);
+    
+    for (layerName in pointLayers){
+        //console.log(pointLayers[layerName]);
+        if (pointLayers[layerName].feature && pointLayers[layerName].feature.properties[attribute]){
+            if (pointLayers[layerName].feature.properties[attribute] >= lowerLimit){
+                console.log(pointLayers[layerName].feature.properties[attribute]);
+                map.addLayer(pointLayers[layerName]);
                 //console.log(layer);
+            }else{
+                map.removeLayer(pointLayers[layerName]);
             }
         }
-        
-    });
+    }
     
-    // Show newly selected filter layer
-    lg = mapLayerGroups[lowerLimit];
-    console.log("show: " + lg);
-    map.addLayer(lg);
-        
-    // Hide previous filter layer
-    lg = mapLayerGroups[prevLowerLimit];
-    console.log("remove: " + lg);
-    map.removeLayer(lg);
-        
-    prevLowerLimit = lowerLimit;
-    //console.log(lg);
+//    map.eachLayer(function(layer){
+//
+//        
+//        // Get layer for this filter value from mapLayerGroups
+//        var lg = mapLayerGroups[lowerLimit];
+//                
+//        // If the layer does not yet exist, create it
+//        if (lg == undefined){
+//            
+//            console.log(lowerLimit + " is undefined");
+//            
+//            lg = new L.layerGroup();
+//            //add the layer to the map
+//            lg.addTo(map);
+//            //store layer
+//            mapLayerGroups[lowerLimit] = lg;
+//        
+//        
+//        }
+//        
+//        // Add features above lower limit to layer
+//        if (layer.feature && layer.feature.properties[attribute]){
+//            if (layer.feature.properties[attribute] >= lowerLimit){
+//                console.log(layer.feature.properties[attribute]);
+//                lg.addLayer(layer);
+//                //console.log(layer);
+//            }
+//        }
+//        
+//    });
+//    
+//    // Show newly selected filter layer
+//    lg = mapLayerGroups[lowerLimit];
+//    console.log("show: " + lg);
+//    map.addLayer(lg);
+//        
+//    // Hide previous filter layer
+//    lg = mapLayerGroups[prevLowerLimit];
+//    console.log("remove: " + lg);
+//    map.removeLayer(lg);
+//        
+//    prevLowerLimit = lowerLimit;
+//    //console.log(lg);
     
 }
 
@@ -226,12 +244,19 @@ function createControls(map, attributes){
         // Update the slider with the new value
         $('.range-slider').val(index);
         
+        // Call the filter function with the new attribute
+        updateFilterLayer(map, attributes[index], $('.filter-slider').val());
+        
         // Update the proportional symbols with the new attribute value
         updatePropSymbols(map, attributes[index]);
     });
     
     // Add an event listener for the slider
     $('.range-slider').on('input', function(){
+        
+        // Call the filter function with the new attribute
+        updateFilterLayer(map, attributes[$('.range-slider').val()], $('.filter-slider').val());
+        
         // Update the proportional symbols with the new attribute value
         updatePropSymbols(map, attributes[$('.range-slider').val()]);
     });
