@@ -3,12 +3,7 @@
 
 /* Map of GeoJSON data from City_temps.geojson */
 
-// Array to store layers for each filter
-var mapLayerGroups = [];
-var prevLowerLimit = 50;
-var activeLayer;
-var inactiveLayer;
-
+// Array to store layers for each point (city)
 var pointLayers = [];
 
 // Function to instantiate the Leaflet map
@@ -93,8 +88,9 @@ function pointToLayer(feature, latlng, attributes){
         //}
     });
     
-    //console.log(feature.properties["City"]);
+    // Save point layers (cities) for future reference
     pointLayers[feature.properties["City"]] = layer
+    
     return layer;
         
 
@@ -138,76 +134,28 @@ function updatePropSymbols(map, attribute){
     });
 };
 
-function updateFilterLayer(map, attribute, lowerLimit){
-
-    console.log("Called updateFilterLayer");
-    console.log(lowerLimit);
-    //console.log(prevLowerLimit);
+// A function to update the filter
+function updateFilterLayer(map, attribute, lowerLimit, upperLimit){
     
-    console.log(pointLayers["Brownsville"]);
-    
+    // Look at each point layer in pointLayers
     for (layerName in pointLayers){
-        //console.log(pointLayers[layerName]);
+        // Make sure layer has feature and properties for the attribute
         if (pointLayers[layerName].feature && pointLayers[layerName].feature.properties[attribute]){
-            if (pointLayers[layerName].feature.properties[attribute] >= lowerLimit){
-                console.log(pointLayers[layerName].feature.properties[attribute]);
+            // If this pointLayer is above the lowerLimit
+            if (pointLayers[layerName].feature.properties[attribute] >= lowerLimit && pointLayers[layerName].feature.properties[attribute] <= upperLimit){
+                // Add pointLayers above the lowerLimit to the map
                 map.addLayer(pointLayers[layerName]);
-                //console.log(layer);
             }else{
+                // Remove pointLayers below the lowerLimit to the map
                 map.removeLayer(pointLayers[layerName]);
             }
         }
     }
-    
-//    map.eachLayer(function(layer){
-//
-//        
-//        // Get layer for this filter value from mapLayerGroups
-//        var lg = mapLayerGroups[lowerLimit];
-//                
-//        // If the layer does not yet exist, create it
-//        if (lg == undefined){
-//            
-//            console.log(lowerLimit + " is undefined");
-//            
-//            lg = new L.layerGroup();
-//            //add the layer to the map
-//            lg.addTo(map);
-//            //store layer
-//            mapLayerGroups[lowerLimit] = lg;
-//        
-//        
-//        }
-//        
-//        // Add features above lower limit to layer
-//        if (layer.feature && layer.feature.properties[attribute]){
-//            if (layer.feature.properties[attribute] >= lowerLimit){
-//                console.log(layer.feature.properties[attribute]);
-//                lg.addLayer(layer);
-//                //console.log(layer);
-//            }
-//        }
-//        
-//    });
-//    
-//    // Show newly selected filter layer
-//    lg = mapLayerGroups[lowerLimit];
-//    console.log("show: " + lg);
-//    map.addLayer(lg);
-//        
-//    // Hide previous filter layer
-//    lg = mapLayerGroups[prevLowerLimit];
-//    console.log("remove: " + lg);
-//    map.removeLayer(lg);
-//        
-//    prevLowerLimit = lowerLimit;
-//    //console.log(lg);
-    
 }
 
 function createControls(map, attributes){
     //Create range input element (slider)
-    $('#panel').append('<input class="range-slider" type="range">');
+    $('#yearSlider').append('<input class="range-slider" type="range">');
     
     // Set slider attributes
     $('.range-slider').attr({
@@ -218,8 +166,8 @@ function createControls(map, attributes){
     });
     
     // Add skip buttons
-    $('#panel').append('<button class="skip" id="reverse">Reverse</button>');
-    $('#panel').append('<button class="skip" id="forward">Skip</button>');
+    $('#yearSlider').append('<button class="skip" id="reverse">Reverse</button>');
+    $('#yearSlider').append('<button class="skip" id="forward">Skip</button>');
     
     // Replace button content with icons
     $('#reverse').html('<img src="img/back.png">');
@@ -235,38 +183,50 @@ function createControls(map, attributes){
             index++;
             // If past the last attribute, wrap around to first attribute
             index = index > 48 ? 0 : index;
+            // Update year display
+            $('#selectedYear').html(1970+index);
+            
         } else if ($(this).attr('id') == 'reverse'){
             index--;
             // If past the first attribute, wrap around to last attribute
             index = index < 0 ? 48 : index;
+            // Update year display
+            $('#selectedYear').html(1970+index);
         };
 
         // Update the slider with the new value
         $('.range-slider').val(index);
         
         // Call the filter function with the new attribute
-        updateFilterLayer(map, attributes[index], $('.filter-slider').val());
+        updateFilterLayer(map, attributes[index], $('.lowerLimit-slider').val(), $('.upperLimit-slider').val());
         
         // Update the proportional symbols with the new attribute value
         updatePropSymbols(map, attributes[index]);
+        
     });
     
     // Add an event listener for the slider
     $('.range-slider').on('input', function(){
         
         // Call the filter function with the new attribute
-        updateFilterLayer(map, attributes[$('.range-slider').val()], $('.filter-slider').val());
+        updateFilterLayer(map, attributes[$('.range-slider').val()], $('.lowerLimit-slider').val(), $('.upperLimit-slider').val());
         
         // Update the proportional symbols with the new attribute value
         updatePropSymbols(map, attributes[$('.range-slider').val()]);
+        
+        // Update year display
+        var index = $('.range-slider').val();
+        index++;
+        index--;
+        $('#selectedYear').html(1970+index);
     });
     
     
     //Create range input element (slider)
-    $('#filterPanel').append('<input class="filter-slider" type="range">');
+    $('#lowerLimitSlider').append('<input class="lowerLimit-slider" type="range">');
     
     // Set slider attributes
-    $('.filter-slider').attr({
+    $('.lowerLimit-slider').attr({
         max: 80,
         min: 50,
         value: 50,
@@ -274,13 +234,34 @@ function createControls(map, attributes){
     });
     
     // Add text to display current value
-    $('#degrees').html($('.filter-slider').val() + " degrees");
+    $('#lowerLimit').html($('.lowerLimit-slider').val() + " degrees");
     
     // Add an event listener for the slider
-    $('.filter-slider').on('input', function(){
+    $('.lowerLimit-slider').on('input', function(){
         // Update visible cities
-        updateFilterLayer(map, attributes[$('.range-slider').val()], $('.filter-slider').val());
-        $('#degrees').html($('.filter-slider').val() + " degrees");
+        updateFilterLayer(map, attributes[$('.range-slider').val()], $('.lowerLimit-slider').val(), $('.upperLimit-slider').val());
+        $('#lowerLimit').html($('.lowerLimit-slider').val() + " degrees");
+    });
+    
+     //Create range input element (slider)
+    $('#upperLimitSlider').append('<input class="upperLimit-slider" type="range">');
+    
+    // Set slider attributes
+    $('.upperLimit-slider').attr({
+        max: 80,
+        min: 50,
+        value: 80,
+        step: 1
+    });
+    
+    // Add text to display current value
+    $('#upperLimit').html($('.upperLimit-slider').val() + " degrees");
+    
+    // Add an event listener for the slider
+    $('.upperLimit-slider').on('input', function(){
+        // Update visible cities
+        updateFilterLayer(map, attributes[$('.range-slider').val()], $('.lowerLimit-slider').val(), $('.upperLimit-slider').val());
+        $('#upperLimit').html($('.upperLimit-slider').val() + " degrees");
     });
     
 };

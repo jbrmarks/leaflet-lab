@@ -14,30 +14,16 @@
     line-height: 42px;
 }
 
+#yearSlider {
+    width: 100%;
+    padding: 0px;
+    display: inline-block;
+    vertical-align: top;
+    text-align: center;
+    line-height: 42px;
+}
+
 .range-slider {
-    width: 50%;
-}
-
-#filterPanel {
-    width: 26%;
-    padding: 0px;
-    display: inline-block;
-    vertical-align: center;
-    text-align: right;
-    line-height: 42px;
-}
-
-#degrees {
-    width: 26%;
-    padding: 0px;
-    display: inline-block;
-    vertical-align: center;
-    text-align: left;
-    line-height: 42px;
-}
-
-
-.filter-slider {
     width: 50%;
 }
 
@@ -47,6 +33,50 @@
 
 #reverse {
     float: left;
+}
+
+#lowerLimitPanel {
+    width: 26%;
+    padding: 20px;
+    display: inline-block;
+    vertical-align: top;
+    text-align: center;
+    line-height: 42px;
+}
+
+#lowerLimitSlider {
+    width: 100%;
+    padding: 0px;
+    display: inline-block;
+    vertical-align: top;
+    text-align: center;
+    line-height: 42px;
+}
+
+.lowerLimit-slider {
+    width: 50%;
+}
+
+#upperLimitPanel {
+    width: 26%;
+    padding: 20px;
+    display: inline-block;
+    vertical-align: top;
+    text-align: center;
+    line-height: 42px;
+}
+
+#upperLimitSlider {
+    width: 100%;
+    padding: 0px;
+    display: inline-block;
+    vertical-align: top;
+    text-align: center;
+    line-height: 42px;
+}
+
+.upperLimit-slider {
+    width: 50%;
 }
 
 .leaflet-popup-content p{
