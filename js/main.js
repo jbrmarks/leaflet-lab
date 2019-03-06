@@ -35,6 +35,25 @@ function calcPropRadius(attValue) {
     return radius;
 };
 
+// A function to create the popups for each city
+function createPopup(properties, attribute, layer){
+    
+            // Update each feature's radius based on new attribute values
+            var radius = calcPropRadius(properties[attribute]);
+            layer.setRadius(radius);
+
+            // Add city and state to popup content string
+            var popupContent = "<p><b>City:</b> " + properties.City + "</p><p><b>State:</b> " + properties.State + "</p>";
+
+            // Add formatted attribute to panel content string
+            var year = attribute.split("_")[1];
+            popupContent += "<p><b>Temperature in " + year + ":</b> " + properties[attribute] + " degrees</p>";
+
+            // Replace the layer popup offset
+            layer.bindPopup(popupContent, {
+                offset: new L.Point(0,-radius)
+            });
+}
 
 function pointToLayer(feature, latlng, attributes){
     
@@ -52,28 +71,12 @@ function pointToLayer(feature, latlng, attributes){
             
     // For each feature, determine its value for the selected attribute
     var attValue = Number(feature.properties[attribute]);
-            
-    // Give each feature's circle marker a radius based on its atribute value
-    options.radius = calcPropRadius(attValue);
     
     // Create circle marker layer
     var layer = L.circleMarker(latlng, options);
     
-    // Build panel content string
-    //var panelContent = "<p><b>City:</b> " + feature.properties.City + "</p><p><b>State:</b> " + feature.properties.State + "</p><p><b>" + attribute + ":</b> " + feature.properties[attribute] + "</p>";
-    
-    
-    // Build popup content string
-    var popupContent = "<p><b>City:</b> " + feature.properties.City + "</p><p><b>State:</b> " + feature.properties.State + "</p>";
-    
-    // Add formatted attribute to panel content string
-    var year = attribute.split("_")[1];
-    popupContent += "<p><b>Temperature in " + year + ":</b> " + feature.properties[attribute] + " degrees</p>";
-    
-    // Bind the popup to the circle marker
-    layer.bindPopup(popupContent, {
-        offset: new L.Point(0,-options.radius) 
-    });
+    // Create popups
+    createPopup(feature.properties, attribute, layer);
     
     // Add event listeners to open the popup on hover
     layer.on({
@@ -114,22 +117,12 @@ function updatePropSymbols(map, attribute){
         if (layer.feature && layer.feature.properties[attribute]){
             // Access feature properties
             var props = layer.feature.properties;
-
-            // Update each feature's radius based on new attribute values
-            var radius = calcPropRadius(props[attribute]);
-            layer.setRadius(radius);
-
-            // Add city and state to popup content string
-            var popupContent = "<p><b>City:</b> " + props.City + "</p><p><b>State:</b> " + props.State + "</p>";
-
-            // Add formatted attribute to panel content string
-            var year = attribute.split("_")[1];
-            popupContent += "<p><b>Temperature in " + year + ":</b> " + props[attribute] + " degrees</p>";
-
-            // Replace the layer popup offset
-            layer.bindPopup(popupContent, {
-                offset: new L.Point(0,-radius)
-            });
+            
+            // Create popups
+            createPopup(layer.feature.properties, attribute, layer);
+            
+            // Update legend
+            updateLegend(map, attribute);
         };
     });
 };
@@ -153,8 +146,239 @@ function updateFilterLayer(map, attribute, lowerLimit, upperLimit){
     }
 }
 
+// Calculate the max, mean, and min values for a given attribute
+function getCircleValues(map, attribute){
+    //start with min at highest possible and max at lowest possible number
+    var min = Infinity,
+        max = -Infinity;
+
+    map.eachLayer(function(layer){
+        //get the attribute value
+        if (layer.feature){
+            var attributeValue = Number(layer.feature.properties[attribute]);
+
+            //test for min
+            if (attributeValue < min){
+                min = attributeValue;
+            };
+
+            //test for max
+            if (attributeValue > max){
+                max = attributeValue;
+            };
+        };
+    });
+
+    //set mean
+    var mean = (max + min) / 2;
+
+    //return values as an object
+    return {
+        max: max,
+        mean: mean,
+        min: min
+    };
+};
+
+// Function to update the legend with new attribute
+function updateLegend(map, attribute){
+    
+    // Create content for the legend
+    var year = attribute.split("_")[1];
+    var content = "Temperature in " + year;
+    
+    // Replace legend content
+    $('#temporal-legend').html(content);
+    
+    // Get the max, mean, and min values as an object
+    var circleValues = getCircleValues(map, attribute);
+    
+    for (var key in circleValues){
+        // Get the radius
+        var radius = calcPropRadius(circleValues[key]);
+        
+        // Assign the cy and r attributes
+        $('#'+key).attr({
+            cy: 59 - radius,
+            r: radius
+        })
+    }
+}
+
+function createLegend(map, attributes){
+    var LegendControl = L.Control.extend({
+        options: {
+            position: 'bottomright'
+        },
+
+        onAdd: function (map) {
+            // create the control container with a particular class name
+            var container = L.DomUtil.create('div', 'legend-control-container');
+
+            $(container).append('<div id = "temporal-legend">');
+            
+            // SVG variable
+            var svg = '<svg id="attribute-legend" width="160px" height="60px">';
+            
+            // Array of circle names to base loop on
+            var circles = ["max", "mean", "min"];
+            
+            // Loop to add each circle and text to svg string
+            for (var i=0; i<circles.length; i++){
+                //circle string
+                svg += '<circle class="legend-circle" id="' + circles[i] + 
+                '" fill="#F47821" fill-opacity="0.8" stroke="#000000" cx="80"/>';
+            };
+            
+            // Close the svg string
+            svg += "</svg>";
+            
+            //add attribute legend svg to container
+            $(container).append(svg);
+
+            return container;
+        }
+        
+
+    });
+
+    map.addControl(new LegendControl());
+    
+    updateLegend(map, attributes[0]);
+};
+
 function createControls(map, attributes){
-    //Create range input element (slider)
+    
+    var SequenceControl = L.Control.extend({
+        options: {
+            position: 'bottomleft'
+        },
+        
+        onAdd: function (map) {
+            // Create the control container div with a particular class name
+            var container = L.DomUtil.create('div', 'sequence-control-container');
+            
+            // Create range input element (slider)
+            $(container).append('<input class = "range-slider" type = "range">');
+
+            
+            // Add skip buttons
+            $(container).append('<button class="skip" id="reverse" title="Reverse">Reverse</button>');
+            $(container).append('<button class="skip" id="forward" title="Forward">Skip</button>');
+            
+            // Create lower limit input element (slider) for filter
+            $(container).append('<input class="lowerLimit-slider" type="range">');
+            
+            // Create display for lower limit value
+            $(container).append('<span id = lowerLimit-display>');
+            
+            // Create upper limit input element (slider) for filter
+            $(container).append('<input class="upperLimit-slider" type="range">');
+            
+            // Create display for upper limit value
+            $(container).append('<span id = upperLimit-display>');
+            
+            
+            // Disable any map mouse event listeners for the container
+            L.DomEvent.disableClickPropagation(container);
+            
+            return container;
+        }
+    });
+    
+     map.addControl(new SequenceControl());
+    
+    // Replace button content with icons
+    $('#reverse').html('<img src="img/back.png">');
+    $('#forward').html('<img src="img/next.png">');
+    
+    
+    // Set slider attributes
+    $('.range-slider').attr({
+        max: 48,
+        min: 0,
+        value: 0,
+        step: 1
+    });
+    
+     // Add event listeners for buttons
+    $('.skip').click(function(){
+        // Get the old index value from the slider
+        var index = $('.range-slider').val();
+
+        // Increment or decrement depending on button clicked
+        if ($(this).attr('id') == 'forward'){
+            index++;
+            // If past the last attribute, wrap around to first attribute
+            index = index > 48 ? 0 : index;
+            
+        } else if ($(this).attr('id') == 'reverse'){
+            index--;
+            // If past the first attribute, wrap around to last attribute
+            index = index < 0 ? 48 : index;
+        };
+
+        // Update the slider with the new value
+        $('.range-slider').val(index);
+        
+        // Call the filter function with the new attribute
+        updateFilterLayer(map, attributes[index], $('.lowerLimit-slider').val(), $('.upperLimit-slider').val());
+        
+        // Update the proportional symbols with the new attribute value
+        updatePropSymbols(map, attributes[index]);
+        
+    });
+    
+    // Add an event listener for the slider
+    $('.range-slider').on('input', function(){
+        
+        // Call the filter function with the new attribute
+        updateFilterLayer(map, attributes[$('.range-slider').val()], $('.lowerLimit-slider').val(), $('.upperLimit-slider').val());
+        
+        // Update the proportional symbols with the new attribute value
+        updatePropSymbols(map, attributes[$('.range-slider').val()]);
+        
+    });
+    
+    
+    // Set slider attributes
+    $('.lowerLimit-slider').attr({
+        max: 80,
+        min: 50,
+        value: 50,
+        step: 1
+    });
+    
+    // Add text to display current value
+    $('#lowerLimit-display').html($('.lowerLimit-slider').val() + " degrees");
+    
+    // Add an event listener for the slider
+    $('.lowerLimit-slider').on('input', function(){
+        // Update visible cities
+        updateFilterLayer(map, attributes[$('.range-slider').val()], $('.lowerLimit-slider').val(), $('.upperLimit-slider').val());
+        $('#lowerLimit-display').html($('.lowerLimit-slider').val() + " degrees");
+    });
+    
+    
+    // Set slider attributes
+    $('.upperLimit-slider').attr({
+        max: 80,
+        min: 50,
+        value: 80,
+        step: 1
+    });
+    
+    // Add text to display current value
+    $('#upperLimit-display').html($('.upperLimit-slider').val() + " degrees");
+    
+    // Add an event listener for the slider
+    $('.upperLimit-slider').on('input', function(){
+        // Update visible cities
+        updateFilterLayer(map, attributes[$('.range-slider').val()], $('.lowerLimit-slider').val(), $('.upperLimit-slider').val());
+        $('#upperLimit-display').html($('.upperLimit-slider').val() + " degrees");
+    });
+    
+    /*//Create range input element (slider)
     $('#yearSlider').append('<input class="range-slider" type="range">');
     
     // Set slider attributes
@@ -262,7 +486,7 @@ function createControls(map, attributes){
         // Update visible cities
         updateFilterLayer(map, attributes[$('.range-slider').val()], $('.lowerLimit-slider').val(), $('.upperLimit-slider').val());
         $('#upperLimit').html($('.upperLimit-slider').val() + " degrees");
-    });
+    });*/
     
 };
 
@@ -306,8 +530,9 @@ function getData(map){
             createPropSymbols(response, map, attributes);
             // Create sequence controls
             createControls(map, attributes);
-            // Create filter controls
-            //createFilterControls(map, attributes);
+            // Create legend
+            createLegend(map, attributes);
+
         
         }
     });

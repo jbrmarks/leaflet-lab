@@ -1,7 +1,7 @@
 /* Stylesheet by Joe Marks, 2019 */
 #map {
-    height: 400px;
-    width: 80%;
+    height: 800px;
+    width: 100%;
     display: inline-block;
 }
 
@@ -12,6 +12,26 @@
     vertical-align: top;
     text-align: center;
     line-height: 42px;
+}
+
+.sequence-control-container {
+    width: 350px;
+    height: 100px;
+    background-color: rgba(255,255,255,0.8);
+    padding: 10px;
+    line-height: 45px;
+    text-align: center;
+    border: solid gray 1px;
+}
+
+.legend-control-container {
+    width: 200px;
+    height: 100px;
+    background-color: rgba(255,255,255,0.8);
+    padding: 10px;
+    line-height: 45px;
+    text-align: center;
+    border: solid gray 1px;
 }
 
 #yearSlider {
