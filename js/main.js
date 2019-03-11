@@ -62,7 +62,7 @@ function pointToLayer(feature, latlng, attributes){
     
     // Create marker options
     var options = {
-        fillColor: "#ff7800",
+        fillColor: "#cc0000",
         color: "#000",
         weight: 1,
         opacity: 1,
@@ -201,7 +201,10 @@ function updateLegend(map, attribute){
         $('#'+key).attr({
             cy: 59 - radius,
             r: radius
-        })
+        });
+        
+        // Add legend text
+        $('#'+key+'-text').text(Math.round(circleValues[key]*100)/100 + " degrees");
     }
 }
 
@@ -221,13 +224,21 @@ function createLegend(map, attributes){
             var svg = '<svg id="attribute-legend" width="160px" height="60px">';
             
             // Array of circle names to base loop on
-            var circles = ["max", "mean", "min"];
+            var circles = {
+                max: 20,
+                mean: 40,
+                min: 60
+            };
             
             // Loop to add each circle and text to svg string
-            for (var i=0; i<circles.length; i++){
+            for (var circle in circles){
                 //circle string
-                svg += '<circle class="legend-circle" id="' + circles[i] + 
-                '" fill="#F47821" fill-opacity="0.8" stroke="#000000" cx="80"/>';
+                svg += '<circle class="legend-circle" id="' + circle + 
+                '" fill="#cc0000" fill-opacity="0.8" stroke="#000000" cx="30"/>';
+            
+                // Text string
+                svg += '<text id="' + circle + '-text" x="65" y="' + circles[circle] + '"></text>';;
+            
             };
             
             // Close the svg string
@@ -258,25 +269,23 @@ function createControls(map, attributes){
             // Create the control container div with a particular class name
             var container = L.DomUtil.create('div', 'sequence-control-container');
             
-            // Create range input element (slider)
-            $(container).append('<input class = "range-slider" type = "range">');
-
+            // Create display for selected year
+            $(container).append('<span id = yearTitle></span>');
             
-            // Add skip buttons
-            $(container).append('<button class="skip" id="reverse" title="Reverse">Reverse</button>');
-            $(container).append('<button class="skip" id="forward" title="Forward">Skip</button>');
+            $(container).append('<br>');
             
-            // Create lower limit input element (slider) for filter
-            $(container).append('<input class="lowerLimit-slider" type="range">');
+            // Create s$(container).append('<br>');pan for sequence controls
+            $(container).append('<span id = sequenceControls></span>');
             
-            // Create display for lower limit value
-            $(container).append('<span id = lowerLimit-display>');
+            $(container).append('<br>');
             
-            // Create upper limit input element (slider) for filter
-            $(container).append('<input class="upperLimit-slider" type="range">');
+            // Create display for filter title
+            $(container).append('<span id = filterTitle></span>');
             
-            // Create display for upper limit value
-            $(container).append('<span id = upperLimit-display>');
+            $(container).append('<br>');
+            
+            // Create span for filter controls
+            $(container).append('<span id = filterControls></span>');
             
             
             // Disable any map mouse event listeners for the container
@@ -288,9 +297,40 @@ function createControls(map, attributes){
     
      map.addControl(new SequenceControl());
     
+    // Create a span to hold the year title content
+    $('#yearTitle').html('<spand id = yearTitleContent></span>');
+    $('#yearTitleContent').html("Selected Year: ");
+    
+    // Append a span to display the selected year
+    $('#yearTitleContent').append('<spand id = selectedYear></span>');
+    $('#selectedYear').html("1970");
+    
+    
+    // Create range input element (slider)
+    $('#sequenceControls').html('<input class = "range-slider" type = "range">');
+
+    // Add skip buttons
+    $('#sequenceControls').append('<button class="skip" id="reverse" title="Reverse">Reverse</button>');
+    $('#sequenceControls').append('<button class="skip" id="forward" title="Forward">Skip</button>');
+    
     // Replace button content with icons
     $('#reverse').html('<img src="img/back.png">');
     $('#forward').html('<img src="img/next.png">');
+    
+    // Add content to filter title
+    $('#filterTitle').html("Temperature Filter");
+    
+    // Create display for lower limit value
+    $('#filterControls').html('<span id = lowerLimit-display></span>');
+            
+    // Create lower limit input element (slider) for filter
+    $('#filterControls').append('<input class="lowerLimit-slider" type="range">');
+            
+    // Create upper limit input element (slider) for filter
+    $('#filterControls').append('<input class="upperLimit-slider" type="range">');
+            
+    // Create display for upper limit value
+    $('#filterControls').append('<span id = upperLimit-display></span>');
     
     
     // Set slider attributes
@@ -311,11 +351,15 @@ function createControls(map, attributes){
             index++;
             // If past the last attribute, wrap around to first attribute
             index = index > 48 ? 0 : index;
+            // Update year display
+            $('#selectedYear').html(1970+index);
             
         } else if ($(this).attr('id') == 'reverse'){
             index--;
             // If past the first attribute, wrap around to last attribute
             index = index < 0 ? 48 : index;
+            // Update year display
+            $('#selectedYear').html(1970+index);
         };
 
         // Update the slider with the new value
@@ -338,6 +382,8 @@ function createControls(map, attributes){
         // Update the proportional symbols with the new attribute value
         updatePropSymbols(map, attributes[$('.range-slider').val()]);
         
+        // Update display for selected year
+        $('#selectedYear').html(1970+Number($('.range-slider').val()));
     });
     
     

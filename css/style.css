@@ -16,7 +16,7 @@
 
 .sequence-control-container {
     width: 350px;
-    height: 100px;
+    height: 175px;
     background-color: rgba(255,255,255,0.8);
     padding: 10px;
     line-height: 45px;
@@ -34,17 +34,19 @@
     border: solid gray 1px;
 }
 
-#yearSlider {
+#yearTitle {
     width: 100%;
-    padding: 0px;
-    display: inline-block;
-    vertical-align: top;
+    padding: 0px 25%;
     text-align: center;
-    line-height: 42px;
+    
+}
+
+#sequenceControls {
+    width: 100%
 }
 
 .range-slider {
-    width: 50%;
+    width: 75%;
 }
 
 #forward {
@@ -55,48 +57,32 @@
     float: left;
 }
 
-#lowerLimitPanel {
-    width: 26%;
-    padding: 20px;
-    display: inline-block;
-    vertical-align: top;
+#filterTitle {
+    width: 100%;
+    padding: 0% 0%;
     text-align: center;
-    line-height: 42px;
+    
 }
 
-#lowerLimitSlider {
+#filterControls {
     width: 100%;
-    padding: 0px;
-    display: inline-block;
-    vertical-align: top;
-    text-align: center;
-    line-height: 42px;
+}
+
+#lowerLimit-display {
+    float: left
 }
 
 .lowerLimit-slider {
-    width: 50%;
+    width: 30%;
 }
 
-#upperLimitPanel {
-    width: 26%;
-    padding: 20px;
-    display: inline-block;
-    vertical-align: top;
-    text-align: center;
-    line-height: 42px;
-}
-
-#upperLimitSlider {
-    width: 100%;
-    padding: 0px;
-    display: inline-block;
-    vertical-align: top;
-    text-align: center;
-    line-height: 42px;
-}
 
 .upperLimit-slider {
-    width: 50%;
+    width: 30%;
+}
+
+#upperLimit-display {
+    float: right
 }
 
 .leaflet-popup-content p{
