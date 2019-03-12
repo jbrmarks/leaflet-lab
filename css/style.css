@@ -1,35 +1,55 @@
 /* Stylesheet by Joe Marks, 2019 */
+
+html {
+    height: 100%
+}
+
+body {
+    height: 100%
+}
+
 #map {
-    height: 800px;
+    height: 100%;
     width: 100%;
     display: inline-block;
 }
 
-#panel {
-    width: 26%;
-    padding: 20px;
-    display: inline-block;
-    vertical-align: top;
-    text-align: center;
-    line-height: 42px;
+
+/* Defines a horzontal center for leaflet controls */ 
+.leaflet-center {
+    left: 50%;
+    transform: translateX(-50%);
 }
 
-.sequence-control-container {
-    width: 350px;
-    height: 175px;
+/* Defines style for title container */ 
+.title-container {
+    width: 340px;
+    height: 30px;
     background-color: rgba(255,255,255,0.8);
-    padding: 10px;
-    line-height: 45px;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 20px;
     text-align: center;
     border: solid gray 1px;
 }
 
-.legend-control-container {
-    width: 200px;
-    height: 100px;
+/* Defines style for sequence control container */ 
+.sequence-control-container {
+    width: 300px;
+    height: 115px;
     background-color: rgba(255,255,255,0.8);
     padding: 10px;
-    line-height: 45px;
+    line-height: 20px;
+    text-align: center;
+    border: solid gray 1px;
+}
+
+/* Defines style for dynamic legend */ 
+.legend-control-container {
+    width: 175px;
+    height: 90px;
+    background-color: rgba(255,255,255,0.8);
+    padding: 10px;
+    line-height: 30px;
     text-align: center;
     border: solid gray 1px;
 }
@@ -46,7 +66,7 @@
 }
 
 .range-slider {
-    width: 75%;
+    width: 60%;
 }
 
 #forward {
@@ -64,6 +84,14 @@
     
 }
 
+#lowerLimitLabel{
+    float: left;
+}
+
+#upperLimitLabel{
+    float: right;
+}
+
 #filterControls {
     width: 100%;
 }
@@ -73,12 +101,12 @@
 }
 
 .lowerLimit-slider {
-    width: 30%;
+    width: 25%;
 }
 
 
 .upperLimit-slider {
-    width: 30%;
+    width: 25%;
 }
 
 #upperLimit-display {

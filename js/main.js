@@ -10,13 +10,13 @@ var pointLayers = [];
 function createMap(){
     // Create the base map
     var map = L.map('map', {
-        center: [32.24, -95.85],
-        zoom: 5
+        center: [39.8283, -98.5795],
+        zoom: 4
     });
 
     // Add OSM base tilelayer
     L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> | Data: <a href="https://www.ncdc.noaa.gov/cag/city/time-series">NOAA</a>'
     }).addTo(map);
 
     // Call the getData function to get and add data to the map
@@ -45,7 +45,7 @@ function createPopup(properties, attribute, layer){
             // Add city and state to popup content string
             var popupContent = "<p><b>City:</b> " + properties.City + "</p><p><b>State:</b> " + properties.State + "</p>";
 
-            // Add formatted attribute to panel content string
+            // Add formatted attribute to popup content string
             var year = attribute.split("_")[1];
             popupContent += "<p><b>Temperature in " + year + ":</b> " + properties[attribute] + " degrees</p>";
 
@@ -55,6 +55,7 @@ function createPopup(properties, attribute, layer){
             });
 }
 
+// A function to translate the point data to layers for the map
 function pointToLayer(feature, latlng, attributes){
     
     // Determine which attribute to visualize with proportional symbols
@@ -62,7 +63,7 @@ function pointToLayer(feature, latlng, attributes){
     
     // Create marker options
     var options = {
-        fillColor: "#cc0000",
+        fillColor: "#dd6611",
         color: "#000",
         weight: 1,
         opacity: 1,
@@ -86,13 +87,10 @@ function pointToLayer(feature, latlng, attributes){
         mouseout: function(){
             this.closePopup();
         },
-        //click: function(){
-        //    $("#panel").html(panelContent);
-        //}
     });
     
     // Save point layers (cities) for future reference
-    pointLayers[feature.properties["City"]] = layer
+    pointLayers[feature.properties["City"]+","+feature.properties["State"]] = layer
     
     return layer;
         
@@ -136,14 +134,20 @@ function updateFilterLayer(map, attribute, lowerLimit, upperLimit){
         if (pointLayers[layerName].feature && pointLayers[layerName].feature.properties[attribute]){
             // If this pointLayer is above the lowerLimit
             if (pointLayers[layerName].feature.properties[attribute] >= lowerLimit && pointLayers[layerName].feature.properties[attribute] <= upperLimit){
-                // Add pointLayers above the lowerLimit to the map
+                // Add pointLayers within the range to the map
                 map.addLayer(pointLayers[layerName]);
+                // Update the popup content for visible layers (cities)
+                createPopup(pointLayers[layerName].feature.properties, attribute, pointLayers[layerName]);
             }else{
-                // Remove pointLayers below the lowerLimit to the map
+                // Remove pointLayers outside the range the map
                 map.removeLayer(pointLayers[layerName]);
             }
         }
     }
+    
+    // Update the legend to match our filtered results
+    updateLegend(map, attribute);
+    
 }
 
 // Calculate the max, mean, and min values for a given attribute
@@ -169,9 +173,19 @@ function getCircleValues(map, attribute){
         };
     });
 
+    // If no min or max is found, assume there are no cities visible on the map
+    // Return 0 for all
+    if (min == Infinity || max == -Infinity){
+        return{
+            max: 0,
+            mean: 0,
+            min: 0
+        }
+    }
+    
     //set mean
     var mean = (max + min) / 2;
-
+    
     //return values as an object
     return {
         max: max,
@@ -185,7 +199,7 @@ function updateLegend(map, attribute){
     
     // Create content for the legend
     var year = attribute.split("_")[1];
-    var content = "Temperature in " + year;
+    var content = "<b>Temperature in " + year+"</b>";
     
     // Replace legend content
     $('#temporal-legend').html(content);
@@ -208,6 +222,7 @@ function updateLegend(map, attribute){
     }
 }
 
+// Function to create the dynamic legend
 function createLegend(map, attributes){
     var LegendControl = L.Control.extend({
         options: {
@@ -225,19 +240,19 @@ function createLegend(map, attributes){
             
             // Array of circle names to base loop on
             var circles = {
-                max: 20,
-                mean: 40,
-                min: 60
+                max: 15,
+                mean: 35,
+                min: 55
             };
             
             // Loop to add each circle and text to svg string
             for (var circle in circles){
                 //circle string
                 svg += '<circle class="legend-circle" id="' + circle + 
-                '" fill="#cc0000" fill-opacity="0.8" stroke="#000000" cx="30"/>';
+                '" fill="#dd6611" fill-opacity="0.8" stroke="#000000" cx="40"/>';
             
                 // Text string
-                svg += '<text id="' + circle + '-text" x="65" y="' + circles[circle] + '"></text>';;
+                svg += '<text id="' + circle + '-text" x="75" y="' + circles[circle] + '"></text>';;
             
             };
             
@@ -253,13 +268,17 @@ function createLegend(map, attributes){
 
     });
 
+    // Add the legend to our map
     map.addControl(new LegendControl());
-    
+    // Update the legend with the current attribute values
     updateLegend(map, attributes[0]);
 };
 
+// Function to create the interactive controls on the map
+// including year sequencing and filtering
 function createControls(map, attributes){
     
+    // Create control extension for the bottom left of the map
     var SequenceControl = L.Control.extend({
         options: {
             position: 'bottomleft'
@@ -274,13 +293,18 @@ function createControls(map, attributes){
             
             $(container).append('<br>');
             
-            // Create s$(container).append('<br>');pan for sequence controls
+            // Create span for sequence controls
             $(container).append('<span id = sequenceControls></span>');
             
             $(container).append('<br>');
             
             // Create display for filter title
             $(container).append('<span id = filterTitle></span>');
+            
+            $(container).append('<br>');
+            
+            // Create display for filter labels
+            $(container).append('<span id = filterLabels></span>');
             
             $(container).append('<br>');
             
@@ -295,16 +319,18 @@ function createControls(map, attributes){
         }
     });
     
+    // Add control layout to map
      map.addControl(new SequenceControl());
+    
+    // Add controls to layout
     
     // Create a span to hold the year title content
     $('#yearTitle').html('<spand id = yearTitleContent></span>');
-    $('#yearTitleContent').html("Selected Year: ");
+    $('#yearTitleContent').html("<b>Selected Year: </b>");
     
     // Append a span to display the selected year
     $('#yearTitleContent').append('<spand id = selectedYear></span>');
     $('#selectedYear').html("1970");
-    
     
     // Create range input element (slider)
     $('#sequenceControls').html('<input class = "range-slider" type = "range">');
@@ -317,9 +343,15 @@ function createControls(map, attributes){
     $('#reverse').html('<img src="img/back.png">');
     $('#forward').html('<img src="img/next.png">');
     
-    // Add content to filter title
-    $('#filterTitle').html("Temperature Filter");
     
+    // Add content to filter title
+    $('#filterTitle').html("<b>Temperature Filter</b>");
+    
+    // Add content to filter labels
+    $('#filterLabels').html('<span id = lowerLimitLabel></span><span id = upperLimitLabel></span>');
+    $('#lowerLimitLabel').html('<b>Lower Limit</b>');
+    $('#upperLimitLabel').html('<b>Upper Limit</b>');
+
     // Create display for lower limit value
     $('#filterControls').html('<span id = lowerLimit-display></span>');
             
@@ -333,7 +365,7 @@ function createControls(map, attributes){
     $('#filterControls').append('<span id = upperLimit-display></span>');
     
     
-    // Set slider attributes
+    // Set slider attributes for year sequence slider
     $('.range-slider').attr({
         max: 48,
         min: 0,
@@ -341,107 +373,7 @@ function createControls(map, attributes){
         step: 1
     });
     
-     // Add event listeners for buttons
-    $('.skip').click(function(){
-        // Get the old index value from the slider
-        var index = $('.range-slider').val();
-
-        // Increment or decrement depending on button clicked
-        if ($(this).attr('id') == 'forward'){
-            index++;
-            // If past the last attribute, wrap around to first attribute
-            index = index > 48 ? 0 : index;
-            // Update year display
-            $('#selectedYear').html(1970+index);
-            
-        } else if ($(this).attr('id') == 'reverse'){
-            index--;
-            // If past the first attribute, wrap around to last attribute
-            index = index < 0 ? 48 : index;
-            // Update year display
-            $('#selectedYear').html(1970+index);
-        };
-
-        // Update the slider with the new value
-        $('.range-slider').val(index);
-        
-        // Call the filter function with the new attribute
-        updateFilterLayer(map, attributes[index], $('.lowerLimit-slider').val(), $('.upperLimit-slider').val());
-        
-        // Update the proportional symbols with the new attribute value
-        updatePropSymbols(map, attributes[index]);
-        
-    });
-    
-    // Add an event listener for the slider
-    $('.range-slider').on('input', function(){
-        
-        // Call the filter function with the new attribute
-        updateFilterLayer(map, attributes[$('.range-slider').val()], $('.lowerLimit-slider').val(), $('.upperLimit-slider').val());
-        
-        // Update the proportional symbols with the new attribute value
-        updatePropSymbols(map, attributes[$('.range-slider').val()]);
-        
-        // Update display for selected year
-        $('#selectedYear').html(1970+Number($('.range-slider').val()));
-    });
-    
-    
-    // Set slider attributes
-    $('.lowerLimit-slider').attr({
-        max: 80,
-        min: 50,
-        value: 50,
-        step: 1
-    });
-    
-    // Add text to display current value
-    $('#lowerLimit-display').html($('.lowerLimit-slider').val() + " degrees");
-    
-    // Add an event listener for the slider
-    $('.lowerLimit-slider').on('input', function(){
-        // Update visible cities
-        updateFilterLayer(map, attributes[$('.range-slider').val()], $('.lowerLimit-slider').val(), $('.upperLimit-slider').val());
-        $('#lowerLimit-display').html($('.lowerLimit-slider').val() + " degrees");
-    });
-    
-    
-    // Set slider attributes
-    $('.upperLimit-slider').attr({
-        max: 80,
-        min: 50,
-        value: 80,
-        step: 1
-    });
-    
-    // Add text to display current value
-    $('#upperLimit-display').html($('.upperLimit-slider').val() + " degrees");
-    
-    // Add an event listener for the slider
-    $('.upperLimit-slider').on('input', function(){
-        // Update visible cities
-        updateFilterLayer(map, attributes[$('.range-slider').val()], $('.lowerLimit-slider').val(), $('.upperLimit-slider').val());
-        $('#upperLimit-display').html($('.upperLimit-slider').val() + " degrees");
-    });
-    
-    /*//Create range input element (slider)
-    $('#yearSlider').append('<input class="range-slider" type="range">');
-    
-    // Set slider attributes
-    $('.range-slider').attr({
-        max: 48,
-        min: 0,
-        value: 0,
-        step: 1
-    });
-    
-    // Add skip buttons
-    $('#yearSlider').append('<button class="skip" id="reverse">Reverse</button>');
-    $('#yearSlider').append('<button class="skip" id="forward">Skip</button>');
-    
-    // Replace button content with icons
-    $('#reverse').html('<img src="img/back.png">');
-    $('#forward').html('<img src="img/next.png">');
+    // Add event listeners for year sequencing
     
     // Add event listeners for buttons
     $('.skip').click(function(){
@@ -475,7 +407,7 @@ function createControls(map, attributes){
         
     });
     
-    // Add an event listener for the slider
+    // Add an event listener for the year sequence slider
     $('.range-slider').on('input', function(){
         
         // Call the filter function with the new attribute
@@ -484,61 +416,85 @@ function createControls(map, attributes){
         // Update the proportional symbols with the new attribute value
         updatePropSymbols(map, attributes[$('.range-slider').val()]);
         
-        // Update year display
-        var index = $('.range-slider').val();
-        index++;
-        index--;
-        $('#selectedYear').html(1970+index);
+        // Update display for selected year
+        $('#selectedYear').html(1970+Number($('.range-slider').val()));
     });
     
     
-    //Create range input element (slider)
-    $('#lowerLimitSlider').append('<input class="lowerLimit-slider" type="range">');
-    
-    // Set slider attributes
+    // Set slider attributes for lower temperature limit
     $('.lowerLimit-slider').attr({
-        max: 80,
-        min: 50,
-        value: 50,
+        max: 90,
+        min: 30,
+        value: 30,
         step: 1
     });
     
     // Add text to display current value
-    $('#lowerLimit').html($('.lowerLimit-slider').val() + " degrees");
+    $('#lowerLimit-display').html($('.lowerLimit-slider').val() + " degrees");
     
-    // Add an event listener for the slider
+    // Add an event listener for the lower temperature limit slider
     $('.lowerLimit-slider').on('input', function(){
         // Update visible cities
         updateFilterLayer(map, attributes[$('.range-slider').val()], $('.lowerLimit-slider').val(), $('.upperLimit-slider').val());
-        $('#lowerLimit').html($('.lowerLimit-slider').val() + " degrees");
+        $('#lowerLimit-display').html($('.lowerLimit-slider').val() + " degrees");
     });
     
-     //Create range input element (slider)
-    $('#upperLimitSlider').append('<input class="upperLimit-slider" type="range">');
     
-    // Set slider attributes
+    // Set slider attributes for upper temperature limit
     $('.upperLimit-slider').attr({
-        max: 80,
-        min: 50,
-        value: 80,
+        max: 90,
+        min: 30,
+        value: 90,
         step: 1
     });
     
     // Add text to display current value
-    $('#upperLimit').html($('.upperLimit-slider').val() + " degrees");
+    $('#upperLimit-display').html($('.upperLimit-slider').val() + " degrees");
     
-    // Add an event listener for the slider
+    // Add an event listener for the upper temperature limit slider
     $('.upperLimit-slider').on('input', function(){
         // Update visible cities
         updateFilterLayer(map, attributes[$('.range-slider').val()], $('.lowerLimit-slider').val(), $('.upperLimit-slider').val());
-        $('#upperLimit').html($('.upperLimit-slider').val() + " degrees");
-    });*/
+        $('#upperLimit-display').html($('.upperLimit-slider').val() + " degrees");
+    });
     
 };
 
+// A function to create and place a title on the map
+function createMapTitle(map){
+    
+    // Create new control position to place title in top center of map
+    var corners = map._controlCorners;
+    container = map._controlContainer;
+    var className = 'leaflet-top leaflet-center';
+    corners['topcenter'] = L.DomUtil.create('div', className, container);
+    
+    // Create control extension for the top right of the map
+    var TitleControl = L.Control.extend({
+        options: {
+            position: 'topcenter'
+        },
+        
+        onAdd: function (map) {
+            // Container will go in the top center
+            var container = L.DomUtil.create('div', 'title-container');
+            
+            $(container).append('<div id = "title">');
+
+            
+            return container;
+        }
+    });
+    
+    // Add control layout to map
+    map.addControl(new TitleControl());
+    
+    $('#title').html("<b>Temperatures Across the United States</b>");
+}
 
 
-// Function to build an attributes array from the data
+
+// A function to build an attributes array from the data
 function processData(data){
     
     // Empty array to hold attributes
@@ -565,7 +521,7 @@ function processData(data){
 function getData(map){
     
         //Example 2.3 line 22...load the data
-    $.ajax("data/City_temps.geojson", {
+    $.ajax("data/More_city_temps.geojson", {
         dataType: "json",
         success: function(response){
             
@@ -574,14 +530,15 @@ function getData(map){
             
             // Create proportional symbols and place on map
             createPropSymbols(response, map, attributes);
+            // Create map title
+            createMapTitle(map);
             // Create sequence controls
             createControls(map, attributes);
             // Create legend
             createLegend(map, attributes);
-
-        
         }
     });
 };
 
+// Call create map once the document is loaded/ready
 $(document).ready(createMap);
